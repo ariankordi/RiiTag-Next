@@ -1,5 +1,6 @@
 import FormData from 'form-data';
 import logger from '@/lib/logger';
+import NnidResolver from '../utils/NnidResolver.mjs';
 
 const CMOC_BASE_URL = 'https://miicontestp.wii.rc24.xyz';
 
@@ -125,11 +126,9 @@ export async function getMiiFromHexData(miiData) {
   return response.body;
 }
 
-async function fetchMiiHexFromMiiDataEndpoint(id, apiId) {
-  let url = `${MII_RENDERER_BASE_URL}/mii_data/${encodeURIComponent(id)}`;
-  if (apiId !== undefined) {
-    url += `?api_id=${encodeURIComponent(apiId)}`;
-  }
+export async function getMiiHexDataFromNNID(nnid) {
+  // Nintendo Network ID – Standard-API (api_id wird nicht gesetzt).
+  const url = `${MII_RENDERER_BASE_URL}/mii_data/${encodeURIComponent(id)}`;
 
   logger.info(`Calling Mii Renderer /mii_data endpoint: ${url}`);
   const response = await fetch(url, {
@@ -157,14 +156,11 @@ async function fetchMiiHexFromMiiDataEndpoint(id, apiId) {
   return json.data;
 }
 
-export async function getMiiHexDataFromNNID(nnid) {
-  // Nintendo Network ID – Standard-API (api_id wird nicht gesetzt).
-  return fetchMiiHexFromMiiDataEndpoint(nnid);
-}
-
 export async function getMiiHexDataFromPNID(pnid) {
-  // Pretendo Network ID – nutzt dieselbe Route, aber mit api_id=1.
-  return fetchMiiHexFromMiiDataEndpoint(pnid, 1);
+  // For Pretendo Network ID, this can be obtained directly with NnidResolver.
+  const pid = await NnidResolver.pidFromUserId(pnid);
+  const response = await NnidResolver.miiFromPid(pid);
+  return response.miiData; // Return Base64 Mii data.
 }
 
 export async function getMiiHexDataFromDataOrUrl(input) {
