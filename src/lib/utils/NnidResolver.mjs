@@ -18,7 +18,6 @@
  * @author Arian Kordi <https://github.com/ariankordi>
  */
 // @ts-check
-/* eslint @stylistic/indent: ['error', 2] -- Indent rules. */
 
 /**
  * Response from the /v1/api/miis endpoint.
@@ -72,12 +71,12 @@ export default class NnidResolver {
    * Does NOT un-escape any characters, or handle multi-line XML.
    * @private
    */
-  static _extractXmlTag = (/** @type {string} */ doc, /** @type {string} */ tag) =>
-    doc.match(new RegExp(`<${tag}>([^<]*)<\\/${tag}>`))?.[1] || '';
+  static _extractXmlTag = (/** @type {string} */ document_, /** @type {string} */ tag) =>
+    document_.match(new RegExp(`<${tag}>([^<]*)<\\/${tag}>`))?.[1] || '';
 
   /** @private */ static _nameFromMiiDataBase64 = (/** @type {string} */ miiData) =>
     // Decode Base64, decode UTF-16LE from bytes @ 0x1A + 20 chars, return text before NULL terminator.
-    new TextDecoder('utf-16le').decode(Uint8Array.from(atob(miiData), c => c.charCodeAt(0)).subarray(26, 46)).split('\0')[0];
+    new TextDecoder('utf-16le').decode(Uint8Array.from(atob(miiData), c => c.codePointAt(0) || 0).subarray(26, 46)).split('\0')[0];
 
   /**
    * Obtains PID (principal ID) as a string from the user ID.
@@ -86,7 +85,7 @@ export default class NnidResolver {
    */
   static async pidFromUserId(/** @type {string} */ userId,
     /** @type {string} */ base = NnidResolver.baseUrl) {
-    const body = await NnidResolver._get(base + '/admin/mapped_ids?input_type=user_id&output_type=pid&input=' + encodeURIComponent(userId));
+    const body = await NnidResolver._get(`${base}/admin/mapped_ids?input_type=user_id&output_type=pid&input=${encodeURIComponent(userId)}`);
     const pid = NnidResolver._extractXmlTag(body, 'out_id');
     if (!pid) {
       throw new Error('User not found.');
@@ -103,15 +102,14 @@ export default class NnidResolver {
    */
   static async miiFromPid(/** @type {string} */ pid,
     /** @type {string} */ base = NnidResolver.baseUrl) {
-    const body = await NnidResolver._get(base + '/miis?pids=' + pid);
+    const body = await NnidResolver._get(`${base}/miis?pids=${pid}`);
 
     const miiData = NnidResolver._extractXmlTag(body, 'data');
     if (!miiData) { // For a non-existent user, we should instead see 404.
       throw new Error('Mii data is unexpectedly empty in response.');
     }
     // 'name' is the only field escaped with XML entities - NOTHING else should ever have them.
-    // Due to ease + a Pretendo bug (https://github.com/PretendoNetwork/account/issues/122),
-    // the name will instead be decoded from the Mii data.
+    // Due to ease and a Pretendo bug affecting escaping, name is decoded from the Mii data.
     const name = NnidResolver._nameFromMiiDataBase64(miiData);
 
     // NOTE: No fields except for name should ever contain XML entities.

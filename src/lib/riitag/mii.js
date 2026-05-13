@@ -128,7 +128,7 @@ export async function getMiiFromHexData(miiData) {
 
 export async function getMiiHexDataFromNNID(nnid) {
   // Nintendo Network ID – Standard-API (api_id wird nicht gesetzt).
-  const url = `${MII_RENDERER_BASE_URL}/mii_data/${encodeURIComponent(id)}`;
+  const url = `${MII_RENDERER_BASE_URL}/mii_data/${encodeURIComponent(nnid)}`;
 
   logger.info(`Calling Mii Renderer /mii_data endpoint: ${url}`);
   const response = await fetch(url, {
